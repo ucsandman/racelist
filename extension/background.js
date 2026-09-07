@@ -40,7 +40,33 @@ async function createInPage(playlistName, trackIds) {
     });
 
     if (!res.ok) {
-      return { type: "error", message: `Apple Music returned ${res.status}.` };
+      // Apple explains itself in the body. Passing back a bare status hid a
+      // clear "subscription tier does not have access to CloudLibrary" during
+      // testing, which looked like a bug in this extension and was not.
+      let detail = "";
+      let code = "";
+      try {
+        const err = await res.json();
+        const first = err && err.errors && err.errors[0];
+        if (first) {
+          code = String(first.code || "");
+          detail = first.detail || first.messageForDisplay || first.title || "";
+        }
+      } catch { /* body was not JSON */ }
+
+      if (code === "40015" || /CloudLibrary/i.test(detail)) {
+        return {
+          type: "error",
+          message:
+            "Creating playlists needs an active Apple Music subscription with iCloud Music Library. Use the deep link list instead.",
+        };
+      }
+      return {
+        type: "error",
+        message: detail
+          ? `Apple Music refused: ${detail}`
+          : `Apple Music returned ${res.status}.`,
+      };
     }
 
     const body = await res.json();
