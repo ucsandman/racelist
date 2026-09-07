@@ -55,6 +55,39 @@ export const SITE_NAME = "Racelist";
 export const SITE_TAGLINE = "Turn an AI song list into a race-paced Apple Music playlist";
 ```
 
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+```ts
+// next.config.ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {};
+
+export default nextConfig;
+```
+
 ```js
 // postcss.config.mjs
 export default { plugins: { "@tailwindcss/postcss": {} } };
