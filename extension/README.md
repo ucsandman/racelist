@@ -32,8 +32,29 @@ The extension recognises Racelist on `localhost` and on
 `https://racelist.vercel.app`. If you deploy it somewhere else, add that origin
 to `content_scripts.matches` in `manifest.json`.
 
+## You need an Apple Music subscription
+
+Creating a playlist writes to your iCloud Music Library, and every
+`/v1/me/library/*` call requires a subscription tier that has it. Signing in
+with an Apple ID is not enough. Without one Apple returns:
+
+```
+400  code 40015  Insufficient Privileges
+User's subscription tier does not have access to privilege: CloudLibrary
+```
+
+That looks like an extension bug and is not one. Catalog lookups still work
+fine, so matching and sequencing are unaffected, and the deep link export needs
+no subscription at all. The extension now reports this case in plain words
+rather than passing back a bare 400.
+
 ## Limitations
 
 The Apple Music web player is not a documented integration point. Apple can
 change or restrict it at any time. If that happens the extension reports the
 failure and Racelist falls back to the deep link list, which always works.
+
+Chrome caches an unpacked service worker across launches. If you edit
+`background.js` during development, reload the extension from
+`chrome://extensions` or use a fresh browser profile, otherwise the old worker
+keeps running.
