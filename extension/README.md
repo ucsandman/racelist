@@ -5,9 +5,20 @@ session already signed in to your browser.
 
 ## What it does with your credentials
 
-Nothing leaves your browser. The content script reads the tokens the Apple Music
-web player already holds in the page and calls Apple's API directly from your
-tab. Racelist servers never see, store or proxy them.
+Nothing leaves your browser. The tokens the Apple Music web player already holds
+are read inside your own Apple Music tab and used to call Apple's API from that
+tab. They are never stored, logged, or sent to a Racelist server.
+
+## How the pieces fit
+
+The Racelist page and Apple Music are different tabs on different origins, so
+the page cannot talk to Apple Music directly. Three parts bridge that gap:
+
+- `bridge.js` runs on the Racelist page and relays its messages to the worker.
+  It is the only part that can see the page, and it never touches a token.
+- `background.js` finds or opens an Apple Music tab and injects the call.
+- The injected function runs in that tab's MAIN world, the only place
+  `window.MusicKit` exists, reads the tokens and posts the playlist.
 
 ## Install
 
@@ -16,6 +27,10 @@ tab. Racelist servers never see, store or proxy them.
 3. Choose Load unpacked and select this `extension` folder
 4. Open <https://music.apple.com> and sign in
 5. Go back to Racelist and press Create the playlist in Apple Music
+
+The extension recognises Racelist on `localhost` and on
+`https://racelist.vercel.app`. If you deploy it somewhere else, add that origin
+to `content_scripts.matches` in `manifest.json`.
 
 ## Limitations
 
