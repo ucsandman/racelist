@@ -1,0 +1,5 @@
+.dashclaw-local/
+node_modules/
+.env
+.env.local
+.playwright-mcp/
