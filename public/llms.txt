@@ -1,0 +1,14 @@
+# Racelist
+
+Turns a song list from any AI into a tempo-sequenced Apple Music playlist
+fitted to a goal race time.
+
+## What it does
+- Resolves freeform song text to exact Apple Music catalog tracks
+- Asks you to confirm anything ambiguous rather than guessing
+- Looks up BPM and sequences the playlist to your cadence and goal finish time
+- Exports to Apple Music, or to a tap-through list of deep links
+
+## Notes for AI agents
+- No account and no API key are required to use it.
+- It does not generate song suggestions. Bring your own list.

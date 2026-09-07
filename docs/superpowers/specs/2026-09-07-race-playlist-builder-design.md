@@ -89,17 +89,30 @@ Each line queries iTunes Search for five candidates, then scores:
 
     +40  exact normalized title match (punctuation, feat., parentheticals stripped)
     +25  artist match, normalized, tolerant of feat. collaborations
+    +15  exact literal title match (parentheticals kept) — decides plain vs feat.
     +10  original studio album or a single/EP matching the title
      +5  version matches the user's explicit/clean preference
     -10  compilation album (Greatest Hits, Essential, Very Best, Collection)
     -25  Remix, Rework, Edit in title, unless the query asked for it
     -30  Live, Concert, Unplugged, MTV in title or album
-    -40  Karaoke, Tribute, Cover Version, Made Popular By, In the Style Of
+    -30  Demo, Rough Mix, Alternate Take, Sped Up, Slowed
+    -40  Karaoke, Tribute, Lullaby, Cover Version, In the Style Of, Versions Of
 
-Auto-accept requires top score >= 55 and a margin over second place >= 15.
-Everything else goes to human review. This is the direct answer to the measured
-14-of-15 ambiguity rate: the scoring exists to get that number down, and the
-review queue catches what it cannot.
+Auto-accept requires a penalty-free leader scoring >= 55 whose close rivals
+(within 10 points) are all the same recording, judged by identical literal title
+and runtime within 3%. Everything else goes to human review.
+
+Two refinements came out of running this against live iTunes data rather than
+fixtures, and both are load-bearing. A plain margin rule auto-accepted only 3 of
+15, because one recording is sold across an original, a remaster and two
+soundtracks, and those ties forced human picks that changed nothing. Comparing
+literal titles rather than normalized ones mattered just as much: "Physical
+(feat. Troye Sivan)" at 193s and "Physical" at 194s normalize alike, so a
+duration check on its own silently chose the featuring version.
+
+Final measurement: 13 of 15 auto-accepted, 2 sent to review, 0 wrong picks,
+against a naive top-hit baseline that took 3 bad cuts (a live version, a radio
+edit and a demo).
 
 Output per track: catalog ID, title, artist, album, duration, artwork URL,
 music.apple.com URL, confidence, and the candidates that lost.

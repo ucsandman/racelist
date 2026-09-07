@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Racelist for Apple Music",
+  "version": "0.2.1",
+  "description": "Creates an Apple Music playlist from a Racelist program, using your own signed-in session.",
+  "background": { "service_worker": "background.js" },
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": ["https://music.apple.com/*", "https://api.music.apple.com/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://racelist.vercel.app/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

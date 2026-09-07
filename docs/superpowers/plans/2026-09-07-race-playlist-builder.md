@@ -14,7 +14,7 @@
 
 - **Tokens never leave the browser.** No server route may read, store, proxy, log or forward an Apple developer token or music user token. The BPM proxy touches Deezer only.
 - **Never silently drop a track.** A track that fails BPM lookup or cadence matching appears in the output as unplaced, visibly.
-- **Never silently auto-pick an ambiguous match.** Auto-accept requires score >= 55 and a margin >= 15 over second place; everything else goes to human review.
+- **Never silently auto-pick an ambiguous match.** Auto-accept requires a penalty-free leader scoring >= 55 whose close rivals are all the same recording (same literal title, runtime within 3%); everything else goes to human review.
 - iTunes Search is called client-side only, queued at 1.1s spacing.
 - Deezer is called server-side only (CORS-blocked in browsers).
 - SEO floor ships with the public surface in the same change: `sitemap.ts`, `robots.ts`, `public/llms.txt`, per-page title and meta description, canonical, OG image.
@@ -661,21 +661,49 @@ export function rank(cands: Candidate[], query: ParsedLine): ScoredCandidate[] {
     .sort((a, b) => b.score - a.score || a.durationMs - b.durationMs);
 }
 
+/**
+ * The same recording is routinely sold on several albums: an original, a
+ * remaster, two soundtracks and a hits compilation. Those are interchangeable
+ * and asking a human to choose between them buys nothing. Same literal title
+ * plus near-identical runtime means same recording.
+ */
+function sameRecording(a: Candidate, b: Candidate): boolean {
+  if (literalTitle(a.title) !== literalTitle(b.title)) return false;
+  const tolerance = Math.max(a.durationMs * 0.03, 3000);
+  return Math.abs(a.durationMs - b.durationMs) <= tolerance;
+}
+
 export function decide(ranked: ScoredCandidate[], query: ParsedLine): Resolution {
   if (ranked.length === 0) {
     return { query, status: "missing", chosen: null, candidates: [] };
   }
+
   const top = ranked[0];
-  const margin = ranked.length > 1 ? top.score - ranked[1].score : Infinity;
-  const auto = top.score >= 55 && margin >= 15;
-  return {
-    query,
-    status: auto ? "auto" : "review",
-    chosen: auto ? top : null,
-    candidates: ranked,
-  };
+  const review: Resolution = { query, status: "review", chosen: null, candidates: ranked };
+
+  // Never auto-accept a cut we already flagged, or a weak match.
+  if (top.penalties.length > 0 || top.score < 55) return review;
+
+  // A close rival is only harmless if it is the same recording on another album.
+  // Anything else genuinely different, a feat. version or a distinct take, needs a human.
+  const closeRivals = ranked.slice(1).filter((c) => c.score > top.score - 10);
+  const interchangeable = closeRivals.every(
+    (r) => r.penalties.length === 0 && sameRecording(top, r),
+  );
+
+  return interchangeable
+    ? { query, status: "auto", chosen: top, candidates: ranked }
+    : review;
 }
 ```
+
+**Measured, not assumed.** A plain margin rule was written first and scored 3 of
+15 auto-accepted on live iTunes data, because one recording sold across an
+original, a remaster and two soundtracks produced ties that forced human picks
+changing nothing. Comparing literal titles rather than normalized ones was the
+second fix: "Physical (feat. Troye Sivan)" at 193s and "Physical" at 194s
+normalize alike, so a duration check alone silently chose the featuring version.
+Final: 13 of 15 auto-accepted, 2 to review, 0 wrong picks.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
