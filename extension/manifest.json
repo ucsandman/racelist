@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Racelist for Apple Music",
+  "version": "0.1.0",
+  "description": "Creates an Apple Music playlist from a Racelist program, using your own signed-in session.",
+  "content_scripts": [
+    {
+      "matches": ["https://music.apple.com/*"],
+      "js": ["content.js"],
+      "world": "MAIN"
+    }
+  ]
+}
