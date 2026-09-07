@@ -38,6 +38,29 @@ describe("buildProgram", () => {
     expect(p.unplaced).toEqual([]);
   });
 
+  it("spreads a small pool across phases instead of dumping it all in warmup", () => {
+    // Five tracks against a two hour goal used to land entirely in warmup,
+    // because the warmup budget is a share of the goal, not of the music.
+    const few = Array.from({ length: 5 }, (_, i) => t(400 + i, 175));
+    const phases = new Set(buildProgram(few, GOAL, 175).slots.map((s) => s.phase));
+    expect(phases.size).toBeGreaterThan(1);
+    expect(phases.has("kick")).toBe(true);
+  });
+
+  it("says plainly when a track is not a real cadence match", () => {
+    // 109 bpm against 165 spm is 52 off on both arms. Calling that a match,
+    // as the first rendered build did, misleads the runner.
+    const p = buildProgram([t(1, 109)], GOAL, 175);
+    expect(p.slots[0].reason).toMatch(/closest available|not a cadence match/i);
+  });
+
+  it("does not add the no-match note when the track genuinely fits", () => {
+    // A lone track lands in warmup, whose target is cadence - 10.
+    const p = buildProgram([t(1, 165)], GOAL, 175);
+    expect(p.slots[0].targetCadence).toBe(165);
+    expect(p.slots[0].reason).not.toMatch(/closest available|not a cadence match/i);
+  });
+
   it("emits phases in race order", () => {
     const phases = buildProgram(many, GOAL, 175).slots.map((s) => s.phase);
     const order = ["warmup", "cruise", "lift", "kick"];

@@ -5,6 +5,7 @@ import { PasteBox } from "../components/PasteBox";
 import { ReviewGrid } from "../components/ReviewGrid";
 import { RaceSettings } from "../components/RaceSettings";
 import { ProgramView } from "../components/ProgramView";
+import { ExportPanel } from "../components/ExportPanel";
 import { enrichWithBpm } from "../lib/enrich";
 import { buildProgram } from "../lib/sequence";
 import type { Candidate, Program, Resolution } from "../lib/types";
@@ -41,6 +42,7 @@ export default function Home() {
       {ready && <RaceSettings onBuild={build} />}
       {building && <p className="mt-4 text-sm opacity-70">Looking up tempo</p>}
       {program && <ProgramView program={program} />}
+      {program && <ExportPanel program={program} />}
     </main>
   );
 }

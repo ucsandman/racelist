@@ -41,18 +41,30 @@ export function buildProgram(tracks: Track[], goalMs: number, cadence: number): 
     return { slots: [], unplaced: tracks.length ? unplaced : [], totalMs: 0, goalMs, cadence };
   }
 
-  const budget = goalMs * BUFFER;
+  // Phase shares are fractions of the budget, so a budget larger than the music
+  // available starves every phase after the first: five tracks against a two
+  // hour goal all landed in warmup. Cap the budget at what there is to place.
+  const availableMs = withBpm.reduce((sum, t) => sum + t.durationMs, 0);
+  const budget = Math.min(goalMs * BUFFER, availableMs);
   const pool = new Set<Track>(withBpm);
   const slots: Slot[] = [];
   let totalMs = 0;
 
-  for (const spec of PHASES) {
+  for (const [phaseIndex, spec] of PHASES.entries()) {
     const targetCadence = cadence + spec.cadenceDelta;
     const phaseBudget = (spec.end - spec.start) * budget;
     const favourLoud = spec.phase === "lift" || spec.phase === "kick";
+    // Filling by duration overshoots by up to one track per phase, which on a
+    // small pool drained everything before the kick. Keep one track in reserve
+    // for each phase still to come. Only worth doing when there are more tracks
+    // than phases: below that, reserving pushes the whole list into the late
+    // phases, and a two track playlist should read warmup then cruise, not
+    // lift then kick.
+    const reserve =
+      withBpm.length > PHASES.length ? PHASES.length - phaseIndex - 1 : 0;
     let phaseMs = 0;
 
-    while (phaseMs < phaseBudget && pool.size > 0) {
+    while (phaseMs < phaseBudget && pool.size > reserve) {
       const [best] = rankForPhase([...pool], targetCadence, favourLoud);
       if (!best) break;
       pool.delete(best);
@@ -62,8 +74,10 @@ export function buildProgram(tracks: Track[], goalMs: number, cadence: number): 
         phase: spec.phase,
         targetCadence,
         reason: `${PHASE_REASON[spec.phase]} — ${Math.round(best.bpm as number)} bpm${
-          fit.multiplier === 2 ? " at double time" : ""
-        }, target ${targetCadence} spm`,
+          fit.fits && fit.multiplier === 2 ? " at double time" : ""
+        }, target ${targetCadence} spm${
+          fit.fits ? "" : " (closest available, not a cadence match)"
+        }`,
       });
       phaseMs += best.durationMs;
       totalMs += best.durationMs;
